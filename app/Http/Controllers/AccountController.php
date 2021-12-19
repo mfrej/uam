@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Log;
 
 class AccountController extends Controller
 {
@@ -65,7 +67,7 @@ class AccountController extends Controller
 
         $validate = $this->validate($request, $rules);
         
-        //
+        // sklejanie danych do zapisania adresów jako json dla pracownik_administracyjny
         if(in_array('pracownik_administracyjny',$request->typ)) {
             $adres_z = array(
                 "wojewodztwo" => $request->adres_z_wojewodztwo,
@@ -101,6 +103,27 @@ class AccountController extends Controller
             'adres_k' => $adres_k_JSON
         ]);
 
+        //logging
+        $user = auth()->user();
+        if(is_null($user)) {
+            $submitter = "unknown";
+        }
+        else {
+            $submitter = $user->id;
+        }
+        $message = "user ".$submitter ." created new account in app:\r\n"
+            ."imie=" .$request->imie
+            .", nazwisko=" .$request->nazwisko
+            .", login=".$request->login
+            .", haslo=".$request->haslo
+            .", typ=" .implode(",",$request->typ)
+            .", telefon=" .$request->telefon
+            .", wyksztalcenie=" .$request->wyksztalcenie
+            .", adres_z=" .$adres_z_JSON
+            .", adres_k=" .$adres_k_JSON;
+        Log::info($message);
+        
+        //
         return redirect('uam/' . $newAccount->id);
     }
 
@@ -138,7 +161,37 @@ class AccountController extends Controller
      */
     public function update(Request $request, Account $account)
     {
-        //
+
+        // logging pobranie danych sprzed zmiany
+        $user = auth()->user();
+        if(is_null($user)) {
+            $submitter = "unknown";
+        }
+        else {
+            $submitter = $user->id;
+        }
+        $message = "user ".$submitter ." updated existing account in app:\r\n"
+            ."old data: imie=" .$account->imie
+            .", nazwisko=" .$account->nazwisko
+            .", login=".$account->login
+            .", haslo=".$account->haslo
+            .", typ=" .$account->typ
+            .", telefon=" .$account->telefon
+            .", wyksztalcenie=" .$account->wyksztalcenie
+            .", adres_z=" .$account->adres_z
+            .", adres_k=" .$account->adres_k;
+        //logging dane z żądania
+        $message .= "\r\nnew data: imie=" .$request->imie
+            .", nazwisko=" .$request->nazwisko
+            .", login=".$request->login
+            .", haslo=".$request->haslo
+            .", typ=" .$request->typ
+            .", telefon=" .$request->telefon
+            .", wyksztalcenie=" .$request->wyksztalcenie
+            .", adres_z=" .$request->adres_z
+            .", adres_k=" .$request->adres_k;
+
+        // aktualizacja
         $account->update([
             'imie' => $request->imie,
             'nazwisko' => $request->nazwisko,
@@ -151,6 +204,10 @@ class AccountController extends Controller
             'adres_k' => $request->adres_k
         ]);
 
+
+
+        Log::info($message);
+
         return redirect('uam/' . $account->id);
     }
 
@@ -162,7 +219,27 @@ class AccountController extends Controller
      */
     public function destroy(Account $account)
     {
+        //logging
+        $user = auth()->user();
+        if(is_null($user)) {
+            $submitter = "unknown";
+        }
+        else {
+            $submitter = $user->id;
+        }
+        $message = "user " .$submitter ." removed account from app: imie=" .$account->imie
+            .", nazwisko=" .$account->nazwisko
+            .", login=".$account->login
+            .", haslo=".$account->haslo
+            .", typ=" .$account->typ
+            .", telefon=" .$account->telefon
+            .", wyksztalcenie=" .$account->wyksztalcenie
+            .", adres_z=" .$account->adres_z
+            .", adres_k=" .$account->adres_k;
+
         $account->delete();
+        
+        Log::info($message);
 
         return redirect('/uam');
     }
